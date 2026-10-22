@@ -1,6 +1,8 @@
 <p align="center">
   <img src="public/branding/loreforge-ai.png"
      alt="LoreForge AI logo" width="180" />
+    ![LoreForge AI homepage](public/screenshots/loreforge-page.jpg)
+    ![LoreForge AI homepage](public/screenshots/loreforge-page2.jpg)
 </p>
 
 <h1 align="center">LoreForge AI</h1>
