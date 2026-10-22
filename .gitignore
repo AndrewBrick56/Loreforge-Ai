@@ -1,0 +1,22 @@
+node_modules/
+.next/
+.env
+.env.local
+*.log
+.DS_Store
+*.tsbuildinfo
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated build output
+node_modules/
+.next/
+.vercel/
+out/
+dist/
+
+# Local dependency backups
+*.before-audit-fix
