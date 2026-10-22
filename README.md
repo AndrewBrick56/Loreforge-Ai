@@ -3,6 +3,18 @@
      alt="LoreForge AI logo" width="180" />
     ![LoreForge AI homepage](public/screenshots/loreforge-page.jpg)
     ![LoreForge AI homepage](public/screenshots/loreforge-page2.jpg)
+    <p align="center">
+  <img
+    src="public/screenshots/loreforge-page.jpg"
+    alt="LoreForge AI homepage"
+    width="900"
+  />
+  <p align="center">
+  <img
+    src="public/screenshots/loreforge-page2.jpg"
+    alt="LoreForge AI homepage"
+    width="900"
+  />
 </p>
 
 <h1 align="center">LoreForge AI</h1>
