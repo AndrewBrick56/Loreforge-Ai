@@ -2,7 +2,7 @@
   <img src="public/branding/loreforge-ai.png"
      alt="LoreForge AI logo" width="180" />
     
-    <p align="center">
+</p>
   <img
     src="public/screenshots/loreforge-page.jpg"
     alt="LoreForge AI homepage"
