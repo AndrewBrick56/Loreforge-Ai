@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/create", label: "Create" },
   { href: "/explore", label: "Explore" },
+  { href: "/launchpads", label: "Launchpads" },
   { href: "/characters", label: "My Characters" },
   { href: "/#how-it-works", label: "How It Works" },
 ];
@@ -20,7 +21,10 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 lf-glass">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-wide">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-display text-lg font-bold tracking-wide"
+        >
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-lf-purple to-lf-cyan text-white">
             <Sparkles size={16} />
           </span>
@@ -29,7 +33,11 @@ export function SiteHeader() {
 
         <nav className="hidden md:flex items-center gap-7 text-sm text-lf-text-dim">
           {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="transition-colors hover:text-lf-text">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="transition-colors hover:text-lf-text"
+            >
               {link.label}
             </Link>
           ))}

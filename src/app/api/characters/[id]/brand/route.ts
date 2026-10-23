@@ -10,7 +10,7 @@ import { logGeneration, USER_MAX_GENERATIONS_PER_WINDOW } from "@/lib/generation
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const MAX_IMAGES_PER_CHARACTER = 60; // mirrors the database trigger (migration 002)
 

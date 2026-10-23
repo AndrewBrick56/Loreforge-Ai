@@ -16,7 +16,7 @@ import {
 } from "@/lib/generation-log";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 // Deliberately well under hosting platforms' serverless request-body caps
 // (e.g. Vercel's 4.5MB limit on both request AND response bodies). Base64

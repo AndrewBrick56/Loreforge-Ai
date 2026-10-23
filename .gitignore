@@ -20,3 +20,5 @@ dist/
 
 # Local dependency backups
 *.before-audit-fix
+
+/supabase/.temp/

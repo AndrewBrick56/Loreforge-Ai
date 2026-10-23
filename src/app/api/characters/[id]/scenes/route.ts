@@ -11,7 +11,7 @@ import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { ART_STYLE_VALUES, ASPECT_RATIO_VALUES } from "@/lib/schemas";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 const MAX_IMAGES_PER_CHARACTER = 60; // mirrors the database trigger (migration 002); checked first so we don't pay for a doomed generation
 
