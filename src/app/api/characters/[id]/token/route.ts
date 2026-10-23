@@ -18,6 +18,7 @@ const bodySchema = z.object({
     .max(15)
     .transform((s) => s.replace(/^\$/, ""))
     .optional(),
+  launchpadId: z.enum(["pump-fun", "raydium-launchlab"]).nullable().optional(),
 });
 
 /**
@@ -66,6 +67,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       mint_address: body.mintAddress,
       token_name: body.tokenName || null,
       token_ticker: body.tokenTicker || null,
+      launchpad_id: body.launchpadId ?? null,
       decimals,
       verified_on_chain: verified,
       associated_by: user.id,
@@ -118,7 +120,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
 
   const { data: token } = await admin
     .from("character_tokens")
-    .select("mint_address, token_name, token_ticker, verified_on_chain, decimals")
+    .select("mint_address, token_name, token_ticker, launchpad_id, verified_on_chain, decimals")
     .eq("character_id", id)
     .maybeSingle();
   if (!token) return NextResponse.json({ token: null, market: null });

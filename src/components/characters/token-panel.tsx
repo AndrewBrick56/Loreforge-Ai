@@ -10,6 +10,7 @@ interface TokenInfo {
   mint_address: string;
   token_name: string | null;
   token_ticker: string | null;
+  launchpad_id: "pump-fun" | "raydium-launchlab" | null;
   verified_on_chain: boolean;
   decimals: number | null;
 }
@@ -39,6 +40,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
   const [mintInput, setMintInput] = useState("");
   const [nameInput, setNameInput] = useState("");
   const [tickerInput, setTickerInput] = useState("");
+  const [launchpadInput, setLaunchpadInput] = useState<"" | "pump-fun" | "raydium-launchlab">("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
       const res = await fetch(`/api/characters/${characterId}/token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mintAddress: mintInput.trim(), tokenName: nameInput.trim() || undefined, tokenTicker: tickerInput.trim() || undefined }),
+        body: JSON.stringify({ mintAddress: mintInput.trim(), tokenName: nameInput.trim() || undefined, tokenTicker: tickerInput.trim() || undefined, launchpadId: launchpadInput || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -127,6 +129,20 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
             <input value={tickerInput} onChange={(e) => setTickerInput(e.target.value.toUpperCase())} maxLength={15} placeholder="TICKER"
               className="w-28 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm placeholder:text-lf-text-faint focus:border-lf-purple-light focus:outline-none" />
           </div>
+          <div>
+            <label htmlFor="token-trading-platform" className="mb-1 block text-xs text-lf-text-dim">Trading destination</label>
+            <select
+              id="token-trading-platform"
+              value={launchpadInput}
+              onChange={(event) => setLaunchpadInput(event.target.value as "" | "pump-fun" | "raydium-launchlab")}
+              className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-lf-text focus:border-lf-purple-light focus:outline-none"
+            >
+              <option value="">No specific platform â€” use market link only</option>
+              <option value="pump-fun">Pump.fun</option>
+              <option value="raydium-launchlab">Raydium Swap</option>
+            </select>
+            <p className="mt-1 text-[11px] text-lf-text-faint">Choose where this existing token is traded. This does not prove token ownership.</p>
+          </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="flex gap-2">
             <Button variant="primary" onClick={associate} disabled={!mintInput.trim() || busy}>
@@ -171,6 +187,16 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
           )}
 
           <div className="flex flex-wrap gap-2">
+            {token.launchpad_id === "pump-fun" && (
+              <a href={`https://pump.fun/?outputCurrency=${encodeURIComponent(token.mint_address)}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="secondary" className="px-3 py-1.5 text-xs"><ExternalLink size={12} /> Trade on Pump.fun</Button>
+              </a>
+            )}
+            {token.launchpad_id === "raydium-launchlab" && (
+              <a href={`https://raydium.io/swap/?inputMint=sol&outputMint=${encodeURIComponent(token.mint_address)}`} target="_blank" rel="noopener noreferrer">
+                <Button variant="secondary" className="px-3 py-1.5 text-xs"><ExternalLink size={12} /> Trade on Raydium</Button>
+              </a>
+            )}
             {market && (
               <a href={market.pairUrl} target="_blank" rel="noreferrer">
                 <Button variant="secondary" className="px-3 py-1.5 text-xs"><ExternalLink size={12} /> View on {market.dexId}</Button>
@@ -178,7 +204,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
             )}
             {isOwner && (
               <>
-                <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => { setMintInput(token.mint_address); setNameInput(token.token_name ?? ""); setTickerInput(token.token_ticker ?? ""); setEditing(true); }}>
+                <Button variant="ghost" className="px-3 py-1.5 text-xs" onClick={() => { setMintInput(token.mint_address); setNameInput(token.token_name ?? ""); setTickerInput(token.token_ticker ?? ""); setLaunchpadInput(token.launchpad_id ?? ""); setEditing(true); }}>
                   Edit
                 </Button>
                 <button onClick={remove} disabled={busy} className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-red-300/80 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50 cursor-pointer">

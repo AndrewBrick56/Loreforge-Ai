@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { href: "/explore", label: "Explore" },
   { href: "/launchpads", label: "Launchpads" },
   { href: "/characters", label: "My Characters" },
+  { href: "/tokens", label: "Tokens" },
   { href: "/#how-it-works", label: "How It Works" },
 ];
 
