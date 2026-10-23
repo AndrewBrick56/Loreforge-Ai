@@ -3,33 +3,51 @@ import Link from "next/link";
 import { getServerUser } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { getExplore } from "@/lib/characters-data";
+import { getExplore, type ExploreCardDTO } from "@/lib/characters-data";
 import { PublicCharacterCard } from "@/components/explore/public-character-card";
-import { GlassCard } from "@/components/ui/glass-card";
 
 export async function FeaturedCharactersSection() {
-  let characters: any[] = [];
+  let characters: ExploreCardDTO[] = [];
 
   if (isSupabaseConfigured()) {
-    const { supabase } = await getServerUser();
+    try {
+      const { supabase } = await getServerUser();
+      const client = supabase ?? (await createClient());
 
-    characters = await getExplore(supabase ?? (await createClient()), {
-      sort: "trending",
-      style: null,
-      q: "",
-      limit: 4,
-    });
+      characters = await getExplore(client, {
+        sort: "trending",
+        style: null,
+        q: "",
+        limit: 4,
+      });
+    } catch (error) {
+      console.error(
+        "[LoreForge] Homepage featured characters failed to load:",
+        error,
+      );
+    }
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
+    <section
+      aria-labelledby="featured-characters-heading"
+      className="mx-auto max-w-7xl px-4 py-20 sm:px-6"
+    >
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-2xl font-bold sm:text-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-lf-cyan">
+            LoreForge community
+          </p>
+
+          <h2
+            id="featured-characters-heading"
+            className="mt-2 font-display text-2xl font-bold sm:text-3xl"
+          >
             Trending characters
           </h2>
+
           <p className="mt-2 text-sm text-lf-text-dim">
-            Original characters published by the LoreForge community.
+            Discover original characters published by their creators.
           </p>
         </div>
 
@@ -37,7 +55,7 @@ export async function FeaturedCharactersSection() {
           href="/explore"
           className="text-sm text-lf-purple-light hover:underline"
         >
-          Explore all
+          Explore all →
         </Link>
       </div>
 
@@ -48,24 +66,33 @@ export async function FeaturedCharactersSection() {
           ))}
         </div>
       ) : (
-        <GlassCard hover={false} className="mt-8 px-6 py-12 text-center">
+        <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-12 text-center">
           <h3 className="font-display text-xl font-bold">
-            Be among the first creators
+            Your next favorite character starts here
           </h3>
 
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-lf-text-dim">
-            Your original characters can appear here when you save them and
-            publish them to Explore. Every featured character comes from the
-            community, not a demo list.
+            Characters appear here after their creators save them and publish
+            them to Explore. Create your own character or browse the community
+            to get started.
           </p>
 
-          <Link
-            href="/create"
-            className="mt-6 inline-flex rounded-xl bg-lf-purple px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-85"
-          >
-            Create a character
-          </Link>
-        </GlassCard>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/create"
+              className="rounded-xl bg-lf-purple px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Create a character
+            </Link>
+
+            <Link
+              href="/explore"
+              className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold hover:bg-white/5"
+            >
+              Browse Explore
+            </Link>
+          </div>
+        </div>
       )}
     </section>
   );
