@@ -112,7 +112,12 @@ const FIELDS: {
     rows: 5,
     maxLength: 2500,
   },
-  { key: "xPost", label: "X announcement draft", rows: 6, maxLength: 2000 },
+  {
+    key: "xPost",
+    label: "X announcement draft",
+    rows: 6,
+    maxLength: 2000,
+  },
   {
     key: "telegramWelcome",
     label: "Telegram welcome message",
@@ -145,7 +150,7 @@ export function LaunchKitBuilder({
 
   const character = characters.find((item) => item.id === selectedId);
 
-  // Load the saved project for the selected character.
+  // Load the saved project when a character is selected.
   useEffect(() => {
     if (!selectedId) return;
 
@@ -263,19 +268,22 @@ or guarantee trading activity or earnings.
     setFeedback("");
   }
 
-  async function saveProject() {
-    if (!character || !draft || saving || loadingProject) return;
+  // Save the latest editor values and return the saved project ID.
+  async function saveProject(): Promise<string | null> {
+    if (!character || !draft || saving || loadingProject) {
+      return null;
+    }
 
     const projectName = draft.projectName.trim();
 
     if (!projectName || projectName.length > 80) {
       setFeedback("Project name must be between 1 and 80 characters.");
-      return;
+      return null;
     }
 
     if (!/^[A-Z0-9]{3,6}$/.test(draft.ticker)) {
       setFeedback("Ticker must contain 3–6 uppercase letters or numbers.");
-      return;
+      return null;
     }
 
     setSaving(true);
@@ -301,22 +309,49 @@ or guarantee trading activity or earnings.
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const tickerError = data.details?.ticker?.[0];
-        setFeedback(tickerError ?? data.error ?? "Couldn't save your project.");
-        return;
+        setFeedback(
+          data.details?.ticker?.[0] ??
+            data.error ??
+            "Couldn't save your project.",
+        );
+        return null;
       }
 
       setProjectId(data.project.id);
-      setFeedback(
-        "Project saved. Your edits and launchpad preference are stored in LoreForge.",
-      );
+      setFeedback("Project saved successfully.");
+
+      return data.project.id as string;
     } catch {
-      setFeedback(
-        "Couldn't reach LoreForge. Please check your connection and try again.",
-      );
+      setFeedback("Couldn't reach LoreForge. Please try again.");
+      return null;
     } finally {
       setSaving(false);
     }
+  }
+
+  // Save the project before recording its launchpad handoff.
+  async function continueToLaunchpad() {
+    const launchpad = getLaunchpads().find(
+      (item) => item.id === selectedLaunchpadId,
+    );
+
+    if (!launchpad) {
+      setFeedback("Choose a launchpad before continuing.");
+      return;
+    }
+
+    const savedProjectId = await saveProject();
+
+    if (!savedProjectId) return;
+
+    const handoffUrl =
+      `/api/launchpads/${encodeURIComponent(launchpad.id)}/handoff` +
+      `?source=launch_kit&projectId=${encodeURIComponent(savedProjectId)}`;
+
+    window.location.href = new URL(
+      handoffUrl,
+      window.location.origin,
+    ).toString();
   }
 
   async function copyText(text: string, label: string) {
@@ -399,6 +434,14 @@ or guarantee trading activity or earnings.
           </Button>
 
           <Button
+            onClick={continueToLaunchpad}
+            disabled={saving || loadingProject || !selectedLaunchpadId}
+          >
+            <Rocket size={15} />
+            Continue to launchpad
+          </Button>
+
+          <Button
             variant="secondary"
             onClick={() => copyText(packageText, "Full package")}
           >
@@ -459,7 +502,7 @@ or guarantee trading activity or earnings.
           </select>
 
           <p className="mt-2 text-xs leading-5 text-lf-text-dim">
-            Choosing a launchpad saves your preference. It does not deploy a
+            Selecting a launchpad saves your preference. It does not deploy a
             token or imply an official LoreForge partnership.
           </p>
         </div>
