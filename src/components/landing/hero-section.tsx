@@ -1,30 +1,7 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { CharacterArtPlaceholder } from "@/components/ui/character-art-placeholder";
+import { ArrowUpRight, Palette, Rocket, Sparkles } from "lucide-react";
 
-const EXAMPLES = [
-  {
-    seed: "billionaire-pigeon",
-    palette: "purple" as const,
-    emoji: "🐦",
-    name: "Reginald Featherstone III",
-    blurb: "An arrogant pigeon CEO who believes he owns the internet.",
-  },
-  {
-    seed: "cyberpunk-cat",
-    palette: "cyan" as const,
-    emoji: "🐱",
-    name: "Nyx-9",
-    blurb: "A neon-drenched street cat running black-market data.",
-  },
-  {
-    seed: "futuristic-dog",
-    palette: "pink" as const,
-    emoji: "🐕",
-    name: "Titan Ray",
-    blurb: "A chrome-plated good boy from the year 3081.",
-  },
-];
+import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
   return (
@@ -35,34 +12,107 @@ export function HeroSection() {
           <br />
           <span className="lf-gradient-text">Your characters.</span>
         </h1>
+
         <p className="mx-auto mt-6 max-w-xl text-balance text-base text-lf-text-dim sm:text-lg">
-          Transform ordinary photos into extraordinary AI characters. Create,
-          customize and unleash your imagination.
+          Create original AI characters, build their stories and memecoin
+          brands, and explore external token launch platforms.
         </p>
+
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <Link href="/create">
             <Button variant="primary">Create character</Button>
           </Link>
+
           <Link href="/explore">
             <Button variant="secondary">Explore characters</Button>
           </Link>
         </div>
       </div>
 
-      <div className="mt-16 grid gap-5 sm:mt-20 sm:grid-cols-3">
-        {EXAMPLES.map((ex, i) => (
-          <div
-            key={ex.seed}
-            className="lf-glass lf-glass-hover overflow-hidden p-3"
-            style={{ transform: i === 1 ? "translateY(-12px)" : undefined }}
-          >
-            <CharacterArtPlaceholder seed={ex.seed} palette={ex.palette} emoji={ex.emoji} />
-            <div className="px-1 pb-1 pt-3">
-              <p className="font-display text-sm font-bold">{ex.name}</p>
-              <p className="mt-1 text-xs leading-relaxed text-lf-text-dim">{ex.blurb}</p>
-            </div>
-          </div>
-        ))}
+      <div className="mx-auto mt-16 grid max-w-5xl gap-5 sm:grid-cols-3">
+        <Link
+          href="/create"
+          className="lf-glass lf-glass-hover group rounded-2xl p-6 transition-colors"
+        >
+          <Sparkles size={25} className="text-lf-cyan" />
+
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-lf-text-faint">
+            Step 01
+          </p>
+
+          <h2 className="mt-2 font-display text-lg font-bold">
+            Create your character
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-lf-text-dim">
+            Turn your ideas and reference images into original characters with
+            their own identity.
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-lf-cyan">
+            Start creating
+            <ArrowUpRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </span>
+        </Link>
+
+        <Link
+          href="/launch-kit"
+          className="lf-glass lf-glass-hover group rounded-2xl p-6 transition-colors"
+        >
+          <Palette size={25} className="text-lf-cyan" />
+
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-lf-text-faint">
+            Step 02
+          </p>
+
+          <h2 className="mt-2 font-display text-lg font-bold">
+            Build your project
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-lf-text-dim">
+            Prepare your memecoin concept, project story, branding and community
+            materials.
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-lf-cyan">
+            Open Launch Kit
+            <ArrowUpRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </span>
+        </Link>
+
+        <Link
+          href="/launchpads"
+          className="lf-glass lf-glass-hover group rounded-2xl p-6 transition-colors"
+        >
+          <Rocket size={25} className="text-lf-cyan" />
+
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-lf-text-faint">
+            Step 03
+          </p>
+
+          <h2 className="mt-2 font-display text-lg font-bold">
+            Explore launchpads
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-lf-text-dim">
+            Compare listed external launch options and review their requirements
+            before proceeding.
+          </p>
+
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-lf-cyan">
+            View launchpads
+            <ArrowUpRight
+              size={15}
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </span>
+        </Link>
       </div>
     </section>
   );
