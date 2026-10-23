@@ -24,6 +24,19 @@ interface MarketData {
   pairUrl: string;
 }
 
+interface PreviewMarketData {
+  priceUsd: number | null;
+  liquidityUsd: number | null;
+  volume24hUsd: number | null;
+  marketCapUsd: number | null;
+  priceChange24hPct: number | null;
+  buys24h: number | null;
+  sells24h: number | null;
+  dexId: string;
+  pairUrl: string;
+  chartEmbedUrl: string;
+}
+
 function fmtUsd(n: number | null): string {
   if (n === null) return "—";
   if (n < 0.01) return `$${n.toPrecision(2)}`;
@@ -41,6 +54,9 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
   const [nameInput, setNameInput] = useState("");
   const [tickerInput, setTickerInput] = useState("");
   const [launchpadInput, setLaunchpadInput] = useState<"" | "pump-fun" | "raydium-launchlab">("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMarket, setPreviewMarket] = useState<PreviewMarketData | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
@@ -60,6 +76,30 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
       cancelled = true;
     };
   }, [characterId]);
+
+  async function previewMarketData() {
+    setPreviewLoading(true);
+    setPreviewError(null);
+    setPreviewMarket(null);
+    try {
+      const response = await fetch(`/api/characters/${characterId}/token/preview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mintAddress: mintInput.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Couldn't preview this token's market data.");
+      if (!data.market) {
+        setPreviewError(data.message ?? "No public DEX market pair was found for this mint yet. The token can exist without a public market.");
+        return;
+      }
+      setPreviewMarket(data.market as PreviewMarketData);
+    } catch (cause: unknown) {
+      setPreviewError(cause instanceof Error ? cause.message : "Couldn't load token market data.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
 
   async function associate() {
     setBusy(true);
@@ -121,7 +161,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
 
       {editing && (
         <div className="space-y-2">
-          <input value={mintInput} onChange={(e) => setMintInput(e.target.value)} placeholder="Token mint address"
+          <input value={mintInput} onChange={(e) => { setMintInput(e.target.value); setPreviewMarket(null); setPreviewError(null); }} placeholder="Token mint address"
             className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-xs placeholder:font-sans placeholder:text-lf-text-faint focus:border-lf-purple-light focus:outline-none" />
           <div className="flex gap-2">
             <input value={nameInput} onChange={(e) => setNameInput(e.target.value)} maxLength={80} placeholder="Token name (optional)"
@@ -143,6 +183,38 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
             </select>
             <p className="mt-1 text-[11px] text-lf-text-faint">Choose where this existing token is traded. This does not prove token ownership.</p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" onClick={previewMarketData} disabled={!mintInput.trim() || previewLoading || busy}>
+              {previewLoading ? <Loader2 size={14} className="animate-spin" /> : "Preview market data"}
+            </Button>
+            <span className="text-[11px] text-lf-text-faint">Previewing does not save or publish this token.</span>
+          </div>
+          {previewError && <p role="status" className="text-xs text-amber-300">{previewError}</p>}
+          {previewMarket && (
+            <div className="space-y-3 rounded-xl border border-lf-cyan/20 bg-black/20 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold">Live market preview <span className="text-xs font-normal text-lf-text-faint">via {previewMarket.dexId}</span></p>
+                <a href={previewMarket.pairUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-lf-cyan hover:underline">Open DexScreener â†—</a>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <div><p className="text-[11px] text-lf-text-faint">Price</p><p className="font-medium">{fmtUsd(previewMarket.priceUsd)}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">24h change</p><p className={`font-medium ${(previewMarket.priceChange24hPct ?? 0) >= 0 ? "text-lf-cyan" : "text-red-400"}`}>{previewMarket.priceChange24hPct === null ? "â€”" : `${previewMarket.priceChange24hPct.toFixed(2)}%`}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">Liquidity</p><p className="font-medium">{fmtUsd(previewMarket.liquidityUsd)}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">24h volume</p><p className="font-medium">{fmtUsd(previewMarket.volume24hUsd)}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">Market cap</p><p className="font-medium">{fmtUsd(previewMarket.marketCapUsd)}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">24h buys</p><p className="font-medium">{previewMarket.buys24h === null ? "â€”" : previewMarket.buys24h.toLocaleString()}</p></div>
+                <div><p className="text-[11px] text-lf-text-faint">24h sells</p><p className="font-medium">{previewMarket.sells24h === null ? "â€”" : previewMarket.sells24h.toLocaleString()}</p></div>
+              </div>
+              <iframe
+                src={previewMarket.chartEmbedUrl}
+                title="Token live market chart preview"
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="h-64 w-full rounded-lg border border-white/10 bg-black/20"
+              />
+              <p className="text-[11px] leading-5 text-lf-text-faint">Market figures and transaction counts are provided by DexScreener and may be missing, delayed, or different across pools. This preview does not verify token ownership.</p>
+            </div>
+          )}
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="flex gap-2">
             <Button variant="primary" onClick={associate} disabled={!mintInput.trim() || busy}>
