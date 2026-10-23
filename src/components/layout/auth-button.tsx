@@ -11,21 +11,21 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
   const router = useRouter();
 
   // undefined = still checking; null = signed out
+  // Avoid a state update in the effect when Supabase is not configured.
   const [email, setEmail] = useState<string | null | undefined>(() =>
     isSupabaseConfigured() ? undefined : null,
   );
 
   const [open, setOpen] = useState(false);
 
-  // Preserve the existing authentication behavior.
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => setEmail(data.user?.email ?? null));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
@@ -34,7 +34,7 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // The only new behavior: close the dropdown when page scrolling starts.
+  // Close the dropdown as soon as the user scrolls.
   useEffect(() => {
     if (!open) return;
 
@@ -61,7 +61,6 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
     return <div className="h-9 w-20" aria-hidden />;
   }
 
-  // Signed-out visitors still see the original Sign in button.
   if (email === null) {
     return (
       <Link
@@ -74,18 +73,14 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
     );
   }
 
-  // Signed-in visitors still see the original Account button.
   return (
     <div className="relative">
       <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex cursor-pointer items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-lf-text-dim hover:border-white/30 hover:text-lf-text"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-lf-text-dim hover:border-white/30 hover:text-lf-text cursor-pointer"
         aria-expanded={open}
       >
-        <UserIcon size={15} />
-        Account
-        <ChevronDown size={13} />
+        <UserIcon size={15} /> Account <ChevronDown size={13} />
       </button>
 
       {open && (
@@ -117,12 +112,10 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
           </Link>
 
           <button
-            type="button"
             onClick={signOut}
-            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-lf-text-dim hover:bg-white/5 hover:text-lf-text"
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-lf-text-dim hover:bg-white/5 hover:text-lf-text cursor-pointer"
           >
-            <LogOut size={14} />
-            Sign out
+            <LogOut size={14} /> Sign out
           </button>
         </div>
       )}
