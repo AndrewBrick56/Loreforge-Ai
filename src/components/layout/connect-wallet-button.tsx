@@ -17,6 +17,16 @@ type WalletHolding = {
   decimals: number;
 };
 
+type TokenHoldingVerification = {
+  mint: string;
+  network: string;
+  hasBalance: boolean;
+  amount: string;
+  decimals: number;
+  tokenAccountsCount: number;
+  checkedAt: string;
+};
+
 type ParsedTokenAccount = {
   account: {
     data: {
@@ -101,6 +111,10 @@ export function ConnectWalletButton() {
   const [walletAssetsUpdatedAt, setWalletAssetsUpdatedAt] = useState<string | null>(null);
   const [walletAssetsLoading, setWalletAssetsLoading] = useState(false);
   const [walletAssetsError, setWalletAssetsError] = useState<string | null>(null);
+  const [tokenHoldingMint, setTokenHoldingMint] = useState("");
+  const [tokenHoldingLoading, setTokenHoldingLoading] = useState(false);
+  const [tokenHoldingResult, setTokenHoldingResult] = useState<TokenHoldingVerification | null>(null);
+  const [tokenHoldingError, setTokenHoldingError] = useState<string | null>(null);
 
   const address = publicKey?.toBase58() ?? null;
   const walletIsLinked = Boolean(address && linkedWallet?.walletAddress === address && linkedWallet.walletVerifiedAt);
@@ -261,6 +275,43 @@ export function ConnectWalletButton() {
       setWalletAssetsLoading(false);
     }
   }, [address, connection, publicKey]);
+  const handleVerifyTokenHolding = useCallback(async () => {
+    const mint = tokenHoldingMint.trim();
+    setTokenHoldingResult(null);
+    setTokenHoldingError(null);
+
+    if (!walletIsLinked || !address) {
+      setTokenHoldingError("Connect and verify the wallet linked to this LoreForge account first.");
+      return;
+    }
+    if (!mint) {
+      setTokenHoldingError("Enter a Solana token mint address first.");
+      return;
+    }
+
+    setTokenHoldingLoading(true);
+    try {
+      const response = await fetch("/api/wallet/token-ownership", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ mint }),
+      });
+      if (!response.ok) {
+        throw new Error(await responseError(response, "Couldn't check token holdings."));
+      }
+      const result = (await response.json()) as TokenHoldingVerification;
+      setTokenHoldingResult(result);
+    } catch (caught) {
+      setTokenHoldingError(
+        caught instanceof Error
+          ? caught.message
+          : "Couldn't check token holdings. Please try again.",
+      );
+    } finally {
+      setTokenHoldingLoading(false);
+    }
+  }, [address, tokenHoldingMint, walletIsLinked]);
   const handleVerifyAndLink = useCallback(async () => {
     if (!address || !publicKey) {
       setError("Connect a wallet first.");
@@ -354,7 +405,7 @@ export function ConnectWalletButton() {
       </button>
 
       {publicKey && open && (
-        <div role="dialog" aria-label="Connected Solana wallet" className="absolute right-0 top-full z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-[#11101a] p-4 text-sm text-white shadow-2xl">
+        <div role="dialog" aria-label="Connected Solana wallet" className="absolute right-0 top-full z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#11101a] p-4 text-sm text-white shadow-2xl">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="font-semibold">Solana wallet</p>
@@ -453,6 +504,78 @@ export function ConnectWalletButton() {
             {walletAssetsError && (
               <p role="status" className="mt-3 text-xs leading-5 text-amber-200">{walletAssetsError}</p>
             )}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 p-3">
+            <div className="flex items-start gap-2">
+              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-lf-cyan" />
+              <div>
+                <p className="font-semibold">Token holding verification</p>
+                <p className="mt-1 text-xs leading-5 text-white/55">
+                  Check whether the wallet linked to this LoreForge account currently holds a specific token mint.
+                </p>
+              </div>
+            </div>
+
+            <label htmlFor="wallet-token-mint-check" className="mt-3 block text-xs font-medium text-white/75">
+              Solana token mint address
+            </label>
+            <input
+              id="wallet-token-mint-check"
+              type="text"
+              value={tokenHoldingMint}
+              onChange={(event) => {
+                setTokenHoldingMint(event.target.value);
+                setTokenHoldingResult(null);
+                setTokenHoldingError(null);
+              }}
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Paste token mint address"
+              maxLength={64}
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2.5 font-mono text-xs text-white outline-none placeholder:text-white/30 focus:border-lf-purple-light"
+            />
+
+            <button
+              type="button"
+              onClick={handleVerifyTokenHolding}
+              disabled={tokenHoldingLoading || !walletIsLinked || !tokenHoldingMint.trim()}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-lf-purple-light/30 bg-lf-purple/15 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-lf-purple/25 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {tokenHoldingLoading ? <LoaderCircle size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
+              {tokenHoldingLoading ? "Checking on Solana..." : "Check token balance"}
+            </button>
+
+            {!walletIsLinked && (
+              <p className="mt-2 text-xs leading-5 text-amber-200/80">
+                Verify and link this connected wallet to your LoreForge account before checking its token balance.
+              </p>
+            )}
+
+            {tokenHoldingResult && (
+              <div role="status" className="mt-3 rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                <p className={tokenHoldingResult.hasBalance ? "text-sm font-semibold text-emerald-300" : "text-sm font-semibold text-amber-200"}>
+                  {tokenHoldingResult.hasBalance ? "Positive token balance found" : "No token balance found"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-white/70">
+                  {tokenHoldingResult.hasBalance
+                    ? `The linked wallet currently holds ${tokenHoldingResult.amount} tokens for this mint.`
+                    : `No nonzero balance for this mint was found on ${tokenHoldingResult.network}.`}
+                </p>
+                <p className="mt-1 break-all font-mono text-[10px] text-white/40">Mint: {tokenHoldingResult.mint}</p>
+                <p className="mt-1 text-[10px] text-white/40">
+                  Checked {new Date(tokenHoldingResult.checkedAt).toLocaleTimeString()} Â· {tokenHoldingResult.tokenAccountsCount} token account(s) Â· {tokenHoldingResult.network}
+                </p>
+              </div>
+            )}
+
+            {tokenHoldingError && (
+              <p role="alert" className="mt-3 text-xs leading-5 text-rose-300">{tokenHoldingError}</p>
+            )}
+
+            <p className="mt-3 text-[10px] leading-4 text-white/40">
+              Read-only on-chain balance check; no transaction or fee. Holding a token does not prove control of its project or mint authority.
+            </p>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 p-3">
