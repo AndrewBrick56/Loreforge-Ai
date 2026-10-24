@@ -1,14 +1,70 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { CheckCircle2, Copy, ExternalLink, LoaderCircle, ShieldCheck, Unlink, Wallet, X } from "lucide-react";
+import { CheckCircle2, Coins, Copy, ExternalLink, LoaderCircle, RefreshCw, ShieldCheck, Unlink, Wallet, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 type LinkedWallet = {
   walletAddress: string | null;
   walletVerifiedAt: string | null;
 };
+
+type WalletHolding = {
+  mint: string;
+  rawAmount: string;
+  decimals: number;
+};
+
+type ParsedTokenAccount = {
+  account: {
+    data: {
+      parsed?: {
+        info?: {
+          mint?: unknown;
+          tokenAmount?: {
+            amount?: unknown;
+            decimals?: unknown;
+          };
+        };
+      };
+    };
+  };
+};
+
+const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+
+function addIntegerStrings(left: string, right: string): string {
+  let i = left.length - 1;
+  let j = right.length - 1;
+  let carry = 0;
+  let output = "";
+
+  while (i >= 0 || j >= 0 || carry > 0) {
+    const a = i >= 0 ? left.charCodeAt(i) - 48 : 0;
+    const b = j >= 0 ? right.charCodeAt(j) - 48 : 0;
+    const sum = a + b + carry;
+    output = String(sum % 10) + output;
+    carry = Math.floor(sum / 10);
+    i--;
+    j--;
+  }
+
+  return output.replace(/^0+(?=\d)/, "") || "0";
+}
+
+function formatWalletTokenAmount(rawAmount: string, decimals: number): string {
+  const digits = rawAmount.replace(/\D/g, "") || "0";
+  const safeDecimals = Math.max(0, Math.min(255, Math.trunc(decimals)));
+  if (safeDecimals === 0) return digits;
+
+  const padded = digits.padStart(safeDecimals + 1, "0");
+  const whole = padded.slice(0, -safeDecimals).replace(/^0+(?=\d)/, "") || "0";
+  const fractional = padded.slice(-safeDecimals).replace(/0+$/, "");
+  return fractional ? `${whole}.${fractional}` : whole;
+}
 
 function shortenAddress(address: string, chars = 4) {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
@@ -31,6 +87,7 @@ function bytesToBase64(bytes: Uint8Array) {
 
 export function ConnectWalletButton() {
   const { publicKey, disconnect, connecting, signMessage } = useWallet();
+  const { connection } = useConnection();
   const { setVisible } = useWalletModal();
   const [open, setOpen] = useState(false);
   const [linkedWallet, setLinkedWallet] = useState<LinkedWallet | null>(null);
@@ -38,6 +95,12 @@ export function ConnectWalletButton() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [walletSolLamports, setWalletSolLamports] = useState<number | null>(null);
+  const [walletHoldings, setWalletHoldings] = useState<WalletHolding[]>([]);
+  const [walletAssetsOwnerAddress, setWalletAssetsOwnerAddress] = useState<string | null>(null);
+  const [walletAssetsUpdatedAt, setWalletAssetsUpdatedAt] = useState<string | null>(null);
+  const [walletAssetsLoading, setWalletAssetsLoading] = useState(false);
+  const [walletAssetsError, setWalletAssetsError] = useState<string | null>(null);
 
   const address = publicKey?.toBase58() ?? null;
   const walletIsLinked = Boolean(address && linkedWallet?.walletAddress === address && linkedWallet.walletVerifiedAt);
@@ -113,6 +176,91 @@ export function ConnectWalletButton() {
     }
   }, [address]);
 
+  const handleRefreshWalletAssets = useCallback(async () => {
+    if (!publicKey || !address) {
+      setWalletAssetsError("Connect a wallet first.");
+      return;
+    }
+
+    setWalletAssetsLoading(true);
+    setWalletAssetsError(null);
+
+    try {
+      const [balanceResult, standardTokensResult, token2022Result] = await Promise.allSettled([
+        connection.getBalance(publicKey, "confirmed"),
+        connection.getParsedTokenAccountsByOwner(
+          publicKey,
+          { programId: SPL_TOKEN_PROGRAM_ID },
+          "confirmed",
+        ),
+        connection.getParsedTokenAccountsByOwner(
+          publicKey,
+          { programId: TOKEN_2022_PROGRAM_ID },
+          "confirmed",
+        ),
+      ]);
+
+      if (balanceResult.status !== "fulfilled") {
+        throw new Error("The Solana RPC could not load the SOL balance. Please refresh and try again.");
+      }
+
+      const holdingsByMint = new Map<string, WalletHolding>();
+      let tokenProgramQueryIncomplete = false;
+
+      for (const result of [standardTokensResult, token2022Result]) {
+        if (result.status !== "fulfilled") {
+          tokenProgramQueryIncomplete = true;
+          continue;
+        }
+
+        const accounts = result.value.value as unknown as ParsedTokenAccount[];
+        for (const account of accounts) {
+          const info = account.account.data.parsed?.info;
+          const mint = info?.mint;
+          const rawAmount = info?.tokenAmount?.amount;
+          const decimals = info?.tokenAmount?.decimals;
+
+          if (
+            typeof mint !== "string" ||
+            typeof rawAmount !== "string" ||
+            !/^\d+$/.test(rawAmount) ||
+            typeof decimals !== "number" ||
+            !Number.isInteger(decimals) ||
+            decimals < 0 ||
+            decimals > 255 ||
+            /^0+$/.test(rawAmount)
+          ) {
+            continue;
+          }
+
+          const previous = holdingsByMint.get(mint);
+          if (previous && previous.decimals === decimals) {
+            previous.rawAmount = addIntegerStrings(previous.rawAmount, rawAmount);
+          } else if (!previous) {
+            holdingsByMint.set(mint, { mint, rawAmount, decimals });
+          }
+        }
+      }
+
+      const holdings = Array.from(holdingsByMint.values()).sort((a, b) => a.mint.localeCompare(b.mint));
+      setWalletSolLamports(balanceResult.value);
+      setWalletHoldings(holdings);
+      setWalletAssetsOwnerAddress(address);
+      setWalletAssetsUpdatedAt(new Date().toISOString());
+
+      if (tokenProgramQueryIncomplete) {
+        setWalletAssetsError("SOL balance loaded, but one token program could not be queried. Refresh to retry.");
+      }
+    } catch (caught) {
+      setWalletAssetsError(
+        caught instanceof Error
+          ? caught.message
+          : "Couldn't load wallet assets. The Solana RPC may be busy; please try again.",
+      );
+    } finally {
+      setWalletAssetsLoading(false);
+    }
+  }, [address, connection, publicKey]);
   const handleVerifyAndLink = useCallback(async () => {
     if (!address || !publicKey) {
       setError("Connect a wallet first.");
@@ -227,6 +375,84 @@ export function ConnectWalletButton() {
                 Explorer <ExternalLink size={12} />
               </a>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-white/10 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">Wallet assets</p>
+                <p className="mt-1 text-xs text-white/55">Read-only balances from Solana. No transaction is sent.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRefreshWalletAssets}
+                disabled={walletAssetsLoading}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/80 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={walletAssetsLoading ? "animate-spin" : ""} />
+                {walletAssetsLoading ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2.5">
+              <span className="text-xs text-white/65">SOL balance</span>
+              <span className="font-mono text-sm font-semibold">
+                {walletAssetsOwnerAddress === address && walletSolLamports !== null
+                  ? `${(walletSolLamports / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL`
+                  : "Not loaded"}
+              </span>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-white/80">
+                <Coins size={14} /> SPL token holdings
+                {walletAssetsOwnerAddress === address && (
+                  <span className="font-normal text-white/45">({walletHoldings.length})</span>
+                )}
+              </div>
+
+              {walletAssetsLoading && walletAssetsOwnerAddress !== address ? (
+                <p className="mt-2 text-xs text-white/50">Loading wallet assets...</p>
+              ) : walletAssetsOwnerAddress !== address ? (
+                <p className="mt-2 text-xs leading-5 text-white/50">Select Refresh to load assets for this wallet.</p>
+              ) : walletHoldings.length === 0 ? (
+                <p className="mt-2 text-xs leading-5 text-white/50">No nonzero SPL token holdings were found for this wallet.</p>
+              ) : (
+                <ul className="mt-2 space-y-2">
+                  {walletHoldings.slice(0, 8).map((holding) => (
+                    <li key={holding.mint} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.035] px-3 py-2">
+                      <a
+                        href={`https://explorer.solana.com/address/${holding.mint}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 truncate font-mono text-xs text-lf-cyan hover:underline"
+                        title={holding.mint}
+                      >
+                        {`${holding.mint.slice(0, 5)}...${holding.mint.slice(-5)}`}
+                      </a>
+                      <span className="shrink-0 text-xs text-white/80">
+                        {formatWalletTokenAmount(holding.rawAmount, holding.decimals)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {walletAssetsOwnerAddress === address && walletHoldings.length > 8 && (
+                <p className="mt-2 text-[11px] text-white/45">
+                  Showing 8 of {walletHoldings.length} token mints. Additional holdings are not displayed here.
+                </p>
+              )}
+            </div>
+
+            {walletAssetsUpdatedAt && walletAssetsOwnerAddress === address && (
+              <p className="mt-3 text-[10px] text-white/40">
+                Updated {new Date(walletAssetsUpdatedAt).toLocaleTimeString()}
+              </p>
+            )}
+            {walletAssetsError && (
+              <p role="status" className="mt-3 text-xs leading-5 text-amber-200">{walletAssetsError}</p>
+            )}
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 p-3">
