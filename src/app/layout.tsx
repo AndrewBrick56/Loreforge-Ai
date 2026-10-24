@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "@fontsource-variable/space-grotesk/wght.css";
 import "@fontsource-variable/orbitron/wght.css";
+import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
 
 import { SiteHeader } from "@/components/layout/site-header";

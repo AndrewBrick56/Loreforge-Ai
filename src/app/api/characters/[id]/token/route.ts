@@ -80,9 +80,42 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: "Couldn't save that token association.", code: "DB_ERROR" }, { status: 500 });
   }
 
+  // Link the token mint to the latest Launch Kit project for this same character.
+  // Do not change project status: a mint association alone does not prove launch or ownership.
+  let launchProjectLinked = false;
+  let launchProjectSyncWarning: string | undefined;
+  const { data: launchProject, error: launchProjectLookupError } = await admin
+    .from("launch_projects")
+    .select("id")
+    .eq("character_id", id)
+    .eq("owner_id", user.id)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (launchProjectLookupError) {
+    console.error("[LoreForge] Launch Kit token link lookup failed:", launchProjectLookupError.message);
+    launchProjectSyncWarning = "The token was saved, but the Launch Kit project could not be linked.";
+  } else if (launchProject) {
+    const { error: launchProjectUpdateError } = await admin
+      .from("launch_projects")
+      .update({ token_mint_address: body.mintAddress, updated_at: new Date().toISOString() })
+      .eq("id", launchProject.id)
+      .eq("owner_id", user.id);
+
+    if (launchProjectUpdateError) {
+      console.error("[LoreForge] Launch Kit token link update failed:", launchProjectUpdateError.message);
+      launchProjectSyncWarning = "The token was saved, but the Launch Kit project could not be linked.";
+    } else {
+      launchProjectLinked = true;
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     verifiedOnChain: verified,
+    launchProjectLinked,
+    launchProjectSyncWarning,
     warning: onChain.status === "unverifiable" ? onChain.reason : undefined,
   });
 }
@@ -98,8 +131,29 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
   const { data: owns } = await supabase.from("characters").select("id").eq("id", id).eq("owner_id", user.id).maybeSingle();
   if (!owns) return NextResponse.json({ error: "Character not found." }, { status: 404 });
 
+  const { data: currentToken } = await supabase
+    .from("character_tokens")
+    .select("mint_address")
+    .eq("character_id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("character_tokens").delete().eq("character_id", id);
   if (error) return NextResponse.json({ error: "Couldn't remove the token association.", code: "DB_ERROR" }, { status: 500 });
+
+  if (currentToken?.mint_address && hasServiceRole()) {
+    const admin = createAdminClient();
+    const { error: unlinkError } = await admin
+      .from("launch_projects")
+      .update({ token_mint_address: null, updated_at: new Date().toISOString() })
+      .eq("character_id", id)
+      .eq("owner_id", user.id)
+      .eq("token_mint_address", currentToken.mint_address);
+    if (unlinkError) {
+      // The token association was successfully removed; log, but don't turn it into a failed delete.
+      console.error("[LoreForge] Launch Kit token unlink failed:", unlinkError.message);
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 

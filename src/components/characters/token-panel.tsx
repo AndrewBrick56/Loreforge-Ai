@@ -60,6 +60,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
+  const [launchKitNotice, setLaunchKitNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,6 +106,7 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
     setBusy(true);
     setError(null);
     setWarning(null);
+    setLaunchKitNotice(null);
     try {
       const res = await fetch(`/api/characters/${characterId}/token`, {
         method: "POST",
@@ -117,6 +119,11 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
         return;
       }
       if (data.warning) setWarning(data.warning);
+      if (data.launchProjectLinked) {
+        setLaunchKitNotice("Token saved and linked to your latest Launch Kit project.");
+      } else if (data.launchProjectSyncWarning) {
+        setLaunchKitNotice(data.launchProjectSyncWarning);
+      }
       setEditing(false);
       router.refresh();
       const refreshed = await fetch(`/api/characters/${characterId}/token`).then((r) => r.json());
@@ -241,6 +248,9 @@ export function TokenPanel({ characterId, isOwner }: { characterId: string; isOw
             {token.verified_on_chain ? "Verified on-chain" : "Not verified on-chain"}
           </div>
           {warning && <p className="text-xs text-amber-300">{warning}</p>}
+          {launchKitNotice && (
+            <p role="status" className="text-xs text-lf-cyan">{launchKitNotice}</p>
+          )}
           {!token.verified_on_chain && (
             <p className="text-xs text-lf-text-faint">
               This is a creator-declared association, not proof of ownership. It couldn&apos;t be confirmed on-chain{isOwner ? " when it was saved" : ""}.
