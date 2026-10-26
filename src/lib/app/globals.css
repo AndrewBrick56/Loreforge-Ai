@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+:root {
+
+  
+  --font-space-grotesk: "Space Grotesk Variable", sans-serif;
+  --font-orbitron: "Orbitron Variable", sans-serif;
+
+  /* Keep all your existing CSS variables below this line. */
+  /* Base surface */
+  --lf-black: #050308;
+  --lf-charcoal: #0d0a14;
+  --lf-charcoal-2: #14101f;
+
+  /* Brand */
+  --lf-purple: #9333ea;
+  --lf-purple-light: #c084fc;
+  --lf-violet: #7c3aed;
+  --lf-cyan: #22d3ee;
+  --lf-pink: #f472b6;
+
+  /* Text */
+  --lf-text: #f4f2fb;
+  --lf-text-dim: #a29bb5;
+  --lf-text-faint: #6b6478;
+
+  /* Glass */
+  --lf-glass-bg: rgba(20, 16, 31, 0.55);
+  --lf-glass-border: rgba(192, 132, 252, 0.18);
+  --lf-glow-purple: rgba(147, 51, 234, 0.45);
+  --lf-glow-cyan: rgba(34, 211, 238, 0.35);
+
+  --background: var(--lf-black);
+  --foreground: var(--lf-text);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-lf-black: var(--lf-black);
+  --color-lf-charcoal: var(--lf-charcoal);
+  --color-lf-charcoal-2: var(--lf-charcoal-2);
+  --color-lf-purple: var(--lf-purple);
+  --color-lf-purple-light: var(--lf-purple-light);
+  --color-lf-violet: var(--lf-violet);
+  --color-lf-cyan: var(--lf-cyan);
+  --color-lf-pink: var(--lf-pink);
+  --color-lf-text: var(--lf-text);
+  --color-lf-text-dim: var(--lf-text-dim);
+  --color-lf-text-faint: var(--lf-text-faint);
+  --font-sans: var(--font-space-grotesk);
+  --font-display: var(--font-orbitron);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ambient animated background */
+.lf-bg-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(147, 51, 234, 0.25), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(34, 211, 238, 0.15), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% 100%, rgba(124, 58, 237, 0.18), transparent 60%),
+    var(--lf-black);
+  animation: lf-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes lf-drift {
+  0% { filter: hue-rotate(0deg) brightness(1); }
+  100% { filter: hue-rotate(12deg) brightness(1.08); }
+}
+
+/* Glassmorphism card */
+.lf-glass {
+  background: var(--lf-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--lf-glass-border);
+  border-radius: 1rem;
+}
+
+.lf-glass-hover {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.lf-glass-hover:hover {
+  border-color: rgba(192, 132, 252, 0.45);
+  box-shadow: 0 0 0 1px rgba(192, 132, 252, 0.15), 0 8px 40px -8px var(--lf-glow-purple);
+  transform: translateY(-2px);
+}
+
+/* Glow text / brand gradient */
+.lf-gradient-text {
+  background: linear-gradient(90deg, var(--lf-purple-light), var(--lf-cyan) 60%, var(--lf-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Glowing border button */
+.lf-btn-primary {
+  position: relative;
+  background: linear-gradient(135deg, var(--lf-purple), var(--lf-violet));
+  box-shadow: 0 0 24px -4px var(--lf-glow-purple);
+  transition: box-shadow 0.25s ease, transform 0.15s ease;
+}
+
+.lf-btn-primary:hover {
+  box-shadow: 0 0 36px -2px var(--lf-glow-purple), 0 0 60px -10px var(--lf-glow-cyan);
+  transform: translateY(-1px);
+}
+
+.lf-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--lf-purple), var(--lf-violet));
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-bg-ambient { animation: none; }
+  html { scroll-behavior: auto; }
+}

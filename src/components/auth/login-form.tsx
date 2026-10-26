@@ -2,23 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Mail } from "lucide-react";
+import { Eye, EyeOff, Loader2, Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 type Message = { kind: "error" | "info"; text: string } | null;
 
-export function LoginForm({ next, initialError }: { next: string; initialError?: string }) {
+export function LoginForm({ next, initialError, confirmed = false }: { next: string; initialError?: string; confirmed?: boolean }) {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<Message>(
-    initialError ? { kind: "error", text: "That sign-in link didn't work or has expired. Please try again." } : null
+    initialError
+      ? { kind: "error", text: "That sign-in link didn't work or has expired. Please try again." }
+      : confirmed
+        ? { kind: "info", text: "Email confirmed successfully. You can now sign in." }
+        : null
   );
 
-  const redirectTo = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+  const redirectTo = (flow?: "signup") => {
+    const params = new URLSearchParams({ next });
+    if (flow) params.set("flow", flow);
+    return `${window.location.origin}/auth/callback?${params.toString()}`;
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +39,7 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: redirectTo() },
+          options: { emailRedirectTo: redirectTo("signup") },
         });
         if (error) {
           setMessage({ kind: "error", text: error.message });
@@ -101,9 +110,20 @@ export function LoginForm({ next, initialError }: { next: string; initialError?:
       </div>
       <div>
         <label htmlFor="password" className="mb-1.5 block text-xs text-lf-text-dim">Password</label>
-        <input id="password" type="password" required minLength={8}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password}
-          onChange={(e) => setPassword(e.target.value)} className={inputClass} placeholder="At least 8 characters" />
+        <div className="relative">
+          <input id="password" type={showPassword ? "text" : "password"} required minLength={8}
+            autoComplete={mode === "signup" ? "new-password" : "current-password"} value={password}
+            onChange={(e) => setPassword(e.target.value)} className={`${inputClass} pr-10`} placeholder="At least 8 characters" />
+          <button
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            className="absolute inset-y-0 right-0 flex items-center px-3 text-lf-text-dim hover:text-white"
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            aria-pressed={showPassword}
+          >
+            {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          </button>
+        </div>
       </div>
 
       {message && (
