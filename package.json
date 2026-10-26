@@ -11,6 +11,10 @@
   "dependencies": {
     "@fontsource-variable/orbitron": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@jup-ag/jup-mobile-adapter": "^0.0.2",
+    "@reown/appkit": "^1.8.24",
+    "@reown/appkit-adapter-solana": "^1.8.24",
+    "@reown/appkit-wallet-button": "^1.8.24",
     "@solana/wallet-adapter-base": "^0.9.28",
     "@solana/wallet-adapter-react": "^0.15.40",
     "@solana/wallet-adapter-react-ui": "^0.9.40",
