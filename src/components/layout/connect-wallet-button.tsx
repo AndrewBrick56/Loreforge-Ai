@@ -3,7 +3,18 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { CheckCircle2, Coins, Copy, ExternalLink, LoaderCircle, RefreshCw, ShieldCheck, Unlink, Wallet, X } from "lucide-react";
+import {
+  CheckCircle2,
+  Coins,
+  Copy,
+  ExternalLink,
+  LoaderCircle,
+  RefreshCw,
+  ShieldCheck,
+  Unlink,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 type LinkedWallet = {
@@ -43,8 +54,12 @@ type ParsedTokenAccount = {
   };
 };
 
-const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-const TOKEN_2022_PROGRAM_ID = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");
+const SPL_TOKEN_PROGRAM_ID = new PublicKey(
+  "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+);
+const TOKEN_2022_PROGRAM_ID = new PublicKey(
+  "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+);
 
 function addIntegerStrings(left: string, right: string): string {
   let i = left.length - 1;
@@ -80,7 +95,10 @@ function shortenAddress(address: string, chars = 4) {
   return `${address.slice(0, chars)}...${address.slice(-chars)}`;
 }
 
-async function responseError(response: Response, fallback: string): Promise<string> {
+async function responseError(
+  response: Response,
+  fallback: string,
+): Promise<string> {
   try {
     const data = (await response.json()) as { error?: string };
     return data.error || fallback;
@@ -105,25 +123,43 @@ export function ConnectWalletButton() {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [walletSolLamports, setWalletSolLamports] = useState<number | null>(null);
+  const [walletSolLamports, setWalletSolLamports] = useState<number | null>(
+    null,
+  );
   const [walletHoldings, setWalletHoldings] = useState<WalletHolding[]>([]);
-  const [walletAssetsOwnerAddress, setWalletAssetsOwnerAddress] = useState<string | null>(null);
-  const [walletAssetsUpdatedAt, setWalletAssetsUpdatedAt] = useState<string | null>(null);
+  const [walletAssetsOwnerAddress, setWalletAssetsOwnerAddress] = useState<
+    string | null
+  >(null);
+  const [walletAssetsUpdatedAt, setWalletAssetsUpdatedAt] = useState<
+    string | null
+  >(null);
   const [walletAssetsLoading, setWalletAssetsLoading] = useState(false);
-  const [walletAssetsError, setWalletAssetsError] = useState<string | null>(null);
+  const [walletAssetsError, setWalletAssetsError] = useState<string | null>(
+    null,
+  );
   const [tokenHoldingMint, setTokenHoldingMint] = useState("");
   const [tokenHoldingLoading, setTokenHoldingLoading] = useState(false);
-  const [tokenHoldingResult, setTokenHoldingResult] = useState<TokenHoldingVerification | null>(null);
-  const [tokenHoldingError, setTokenHoldingError] = useState<string | null>(null);
+  const [tokenHoldingResult, setTokenHoldingResult] =
+    useState<TokenHoldingVerification | null>(null);
+  const [tokenHoldingError, setTokenHoldingError] = useState<string | null>(
+    null,
+  );
 
   const address = publicKey?.toBase58() ?? null;
-  const walletIsLinked = Boolean(address && linkedWallet?.walletAddress === address && linkedWallet.walletVerifiedAt);
+  const walletIsLinked = Boolean(
+    address &&
+    linkedWallet?.walletAddress === address &&
+    linkedWallet.walletVerifiedAt,
+  );
 
   useEffect(() => {
     if (!address) return;
 
     const controller = new AbortController();
-    void fetch("/api/wallet/link", { cache: "no-store", signal: controller.signal })
+    void fetch("/api/wallet/link", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
       .then(async (response) => {
         if (!response.ok) return null;
         return (await response.json()) as LinkedWallet;
@@ -157,7 +193,10 @@ export function ConnectWalletButton() {
         .then(async (response) => {
           if (!response.ok) {
             throw new Error(
-              await responseError(response, "Couldn't refresh wallet link status.")
+              await responseError(
+                response,
+                "Couldn't refresh wallet link status.",
+              ),
             );
           }
           return (await response.json()) as LinkedWallet;
@@ -172,7 +211,7 @@ export function ConnectWalletButton() {
           setError(
             caught instanceof Error
               ? caught.message
-              : "Couldn't refresh wallet link status."
+              : "Couldn't refresh wallet link status.",
           );
         });
     }
@@ -186,7 +225,9 @@ export function ConnectWalletButton() {
       setNotice("Wallet address copied.");
       setError(null);
     } catch {
-      setError("Couldn't copy automatically. You can select the address above and copy it.");
+      setError(
+        "Couldn't copy automatically. You can select the address above and copy it.",
+      );
     }
   }, [address]);
 
@@ -200,22 +241,25 @@ export function ConnectWalletButton() {
     setWalletAssetsError(null);
 
     try {
-      const [balanceResult, standardTokensResult, token2022Result] = await Promise.allSettled([
-        connection.getBalance(publicKey, "confirmed"),
-        connection.getParsedTokenAccountsByOwner(
-          publicKey,
-          { programId: SPL_TOKEN_PROGRAM_ID },
-          "confirmed",
-        ),
-        connection.getParsedTokenAccountsByOwner(
-          publicKey,
-          { programId: TOKEN_2022_PROGRAM_ID },
-          "confirmed",
-        ),
-      ]);
+      const [balanceResult, standardTokensResult, token2022Result] =
+        await Promise.allSettled([
+          connection.getBalance(publicKey, "confirmed"),
+          connection.getParsedTokenAccountsByOwner(
+            publicKey,
+            { programId: SPL_TOKEN_PROGRAM_ID },
+            "confirmed",
+          ),
+          connection.getParsedTokenAccountsByOwner(
+            publicKey,
+            { programId: TOKEN_2022_PROGRAM_ID },
+            "confirmed",
+          ),
+        ]);
 
       if (balanceResult.status !== "fulfilled") {
-        throw new Error("The Solana RPC could not load the SOL balance. Please refresh and try again.");
+        throw new Error(
+          "The Solana RPC could not load the SOL balance. Please refresh and try again.",
+        );
       }
 
       const holdingsByMint = new Map<string, WalletHolding>();
@@ -249,21 +293,28 @@ export function ConnectWalletButton() {
 
           const previous = holdingsByMint.get(mint);
           if (previous && previous.decimals === decimals) {
-            previous.rawAmount = addIntegerStrings(previous.rawAmount, rawAmount);
+            previous.rawAmount = addIntegerStrings(
+              previous.rawAmount,
+              rawAmount,
+            );
           } else if (!previous) {
             holdingsByMint.set(mint, { mint, rawAmount, decimals });
           }
         }
       }
 
-      const holdings = Array.from(holdingsByMint.values()).sort((a, b) => a.mint.localeCompare(b.mint));
+      const holdings = Array.from(holdingsByMint.values()).sort((a, b) =>
+        a.mint.localeCompare(b.mint),
+      );
       setWalletSolLamports(balanceResult.value);
       setWalletHoldings(holdings);
       setWalletAssetsOwnerAddress(address);
       setWalletAssetsUpdatedAt(new Date().toISOString());
 
       if (tokenProgramQueryIncomplete) {
-        setWalletAssetsError("SOL balance loaded, but one token program could not be queried. Refresh to retry.");
+        setWalletAssetsError(
+          "SOL balance loaded, but one token program could not be queried. Refresh to retry.",
+        );
       }
     } catch (caught) {
       setWalletAssetsError(
@@ -281,7 +332,9 @@ export function ConnectWalletButton() {
     setTokenHoldingError(null);
 
     if (!walletIsLinked || !address) {
-      setTokenHoldingError("Connect and verify the wallet linked to this LoreForge account first.");
+      setTokenHoldingError(
+        "Connect and verify the wallet linked to this LoreForge account first.",
+      );
       return;
     }
     if (!mint) {
@@ -298,7 +351,9 @@ export function ConnectWalletButton() {
         body: JSON.stringify({ mint }),
       });
       if (!response.ok) {
-        throw new Error(await responseError(response, "Couldn't check token holdings."));
+        throw new Error(
+          await responseError(response, "Couldn't check token holdings."),
+        );
       }
       const result = (await response.json()) as TokenHoldingVerification;
       setTokenHoldingResult(result);
@@ -318,7 +373,9 @@ export function ConnectWalletButton() {
       return;
     }
     if (!signMessage) {
-      setError("This wallet doesn't support message signing. Try a wallet that supports signMessage.");
+      setError(
+        "This wallet doesn't support message signing. Try a wallet that supports signMessage.",
+      );
       return;
     }
 
@@ -332,12 +389,22 @@ export function ConnectWalletButton() {
         body: JSON.stringify({ walletAddress: address }),
       });
       if (!challengeResponse.ok) {
-        throw new Error(await responseError(challengeResponse, "Couldn't start wallet verification."));
+        throw new Error(
+          await responseError(
+            challengeResponse,
+            "Couldn't start wallet verification.",
+          ),
+        );
       }
-      const challenge = (await challengeResponse.json()) as { nonce: string; message: string };
+      const challenge = (await challengeResponse.json()) as {
+        nonce: string;
+        message: string;
+      };
 
       // This asks the wallet to sign a readable off-chain message, not a transaction.
-      const signature = await signMessage(new TextEncoder().encode(challenge.message));
+      const signature = await signMessage(
+        new TextEncoder().encode(challenge.message),
+      );
 
       const verifyResponse = await fetch("/api/wallet/verify", {
         method: "POST",
@@ -349,32 +416,56 @@ export function ConnectWalletButton() {
         }),
       });
       if (!verifyResponse.ok) {
-        throw new Error(await responseError(verifyResponse, "Wallet verification failed."));
+        throw new Error(
+          await responseError(verifyResponse, "Wallet verification failed."),
+        );
       }
 
-      const result = (await verifyResponse.json()) as { walletAddress: string; walletVerifiedAt: string };
-      setLinkedWallet({ walletAddress: result.walletAddress, walletVerifiedAt: result.walletVerifiedAt });
+      const result = (await verifyResponse.json()) as {
+        walletAddress: string;
+        walletVerifiedAt: string;
+      };
+      setLinkedWallet({
+        walletAddress: result.walletAddress,
+        walletVerifiedAt: result.walletVerifiedAt,
+      });
       setNotice("Wallet verified and linked to your LoreForge account.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Wallet verification failed. Please try again.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Wallet verification failed. Please try again.",
+      );
     } finally {
       setBusy(null);
     }
   }, [address, publicKey, signMessage]);
 
   const handleUnlink = useCallback(async () => {
-    if (!window.confirm("Unlink this wallet from your LoreForge account? This won't disconnect it from your browser.")) return;
+    if (
+      !window.confirm(
+        "Unlink this wallet from your LoreForge account? This won't disconnect it from your browser.",
+      )
+    )
+      return;
 
     setBusy("unlink");
     setError(null);
     setNotice(null);
     try {
       const response = await fetch("/api/wallet/link", { method: "DELETE" });
-      if (!response.ok) throw new Error(await responseError(response, "Couldn't unlink the wallet."));
+      if (!response.ok)
+        throw new Error(
+          await responseError(response, "Couldn't unlink the wallet."),
+        );
       setLinkedWallet({ walletAddress: null, walletVerifiedAt: null });
       setNotice("Wallet unlinked from your LoreForge account.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Couldn't unlink this wallet.");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Couldn't unlink this wallet.",
+      );
     } finally {
       setBusy(null);
     }
@@ -400,18 +491,37 @@ export function ConnectWalletButton() {
         aria-haspopup={publicKey ? "dialog" : "listbox"}
         className="lf-btn-primary flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white"
       >
-        {connecting ? <LoaderCircle size={16} className="animate-spin" /> : <Wallet size={16} />}
-        {connecting ? "Connecting..." : address ? shortenAddress(address) : "Connect Wallet"}
+        {connecting ? (
+          <LoaderCircle size={16} className="animate-spin" />
+        ) : (
+          <Wallet size={16} />
+        )}
+        {connecting
+          ? "Connecting..."
+          : address
+            ? shortenAddress(address)
+            : "Connect Wallet"}
       </button>
 
       {publicKey && open && (
-        <div role="dialog" aria-label="Connected Solana wallet" className="absolute right-0 top-full z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#11101a] p-4 text-sm text-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-label="Connected Solana wallet"
+          className="fixed left-1/2 top-1/2 z-[70] w-[calc(100vw-2rem)] max-w-[22rem] -translate-x-1/2 -translate-y-1/2 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#11101a] p-4 text-sm text-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-3 sm:w-[22rem] sm:translate-x-0 sm:translate-y-0 sm:max-h-[calc(100dvh-6rem)]"
+        >
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="font-semibold">Solana wallet</p>
-              <p className="mt-1 text-xs text-white/60">Connected in this browser</p>
+              <p className="mt-1 text-xs text-white/60">
+                Connected in this browser
+              </p>
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close wallet panel" className="rounded-md p-1 text-white/60 hover:bg-white/10 hover:text-white">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close wallet panel"
+              className="rounded-md p-1 text-white/60 hover:bg-white/10 hover:text-white"
+            >
               <X size={16} />
             </button>
           </div>
@@ -419,10 +529,19 @@ export function ConnectWalletButton() {
           <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] p-3">
             <p className="break-all font-mono text-xs leading-5">{address}</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button type="button" onClick={handleCopy} className="inline-flex items-center gap-1.5 text-xs text-white/75 hover:text-white">
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1.5 text-xs text-white/75 hover:text-white"
+              >
                 <Copy size={13} /> {copied ? "Copied" : "Copy address"}
               </button>
-              <a href={`https://explorer.solana.com/address/${address}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-white/75 hover:text-white">
+              <a
+                href={`https://explorer.solana.com/address/${address}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-white/75 hover:text-white"
+              >
                 Explorer <ExternalLink size={12} />
               </a>
             </div>
@@ -432,7 +551,9 @@ export function ConnectWalletButton() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-semibold">Wallet assets</p>
-                <p className="mt-1 text-xs text-white/55">Read-only balances from Solana. No transaction is sent.</p>
+                <p className="mt-1 text-xs text-white/55">
+                  Read-only balances from Solana. No transaction is sent.
+                </p>
               </div>
               <button
                 type="button"
@@ -440,7 +561,10 @@ export function ConnectWalletButton() {
                 disabled={walletAssetsLoading}
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/80 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <RefreshCw size={13} className={walletAssetsLoading ? "animate-spin" : ""} />
+                <RefreshCw
+                  size={13}
+                  className={walletAssetsLoading ? "animate-spin" : ""}
+                />
                 {walletAssetsLoading ? "Loading..." : "Refresh"}
               </button>
             </div>
@@ -448,7 +572,8 @@ export function ConnectWalletButton() {
             <div className="mt-4 flex items-center justify-between rounded-lg bg-white/[0.04] px-3 py-2.5">
               <span className="text-xs text-white/65">SOL balance</span>
               <span className="font-mono text-sm font-semibold">
-                {walletAssetsOwnerAddress === address && walletSolLamports !== null
+                {walletAssetsOwnerAddress === address &&
+                walletSolLamports !== null
                   ? `${(walletSolLamports / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 9 })} SOL`
                   : "Not loaded"}
               </span>
@@ -458,20 +583,31 @@ export function ConnectWalletButton() {
               <div className="flex items-center gap-2 text-xs font-semibold text-white/80">
                 <Coins size={14} /> SPL token holdings
                 {walletAssetsOwnerAddress === address && (
-                  <span className="font-normal text-white/45">({walletHoldings.length})</span>
+                  <span className="font-normal text-white/45">
+                    ({walletHoldings.length})
+                  </span>
                 )}
               </div>
 
               {walletAssetsLoading && walletAssetsOwnerAddress !== address ? (
-                <p className="mt-2 text-xs text-white/50">Loading wallet assets...</p>
+                <p className="mt-2 text-xs text-white/50">
+                  Loading wallet assets...
+                </p>
               ) : walletAssetsOwnerAddress !== address ? (
-                <p className="mt-2 text-xs leading-5 text-white/50">Select Refresh to load assets for this wallet.</p>
+                <p className="mt-2 text-xs leading-5 text-white/50">
+                  Select Refresh to load assets for this wallet.
+                </p>
               ) : walletHoldings.length === 0 ? (
-                <p className="mt-2 text-xs leading-5 text-white/50">No nonzero SPL token holdings were found for this wallet.</p>
+                <p className="mt-2 text-xs leading-5 text-white/50">
+                  No nonzero SPL token holdings were found for this wallet.
+                </p>
               ) : (
                 <ul className="mt-2 space-y-2">
                   {walletHoldings.slice(0, 8).map((holding) => (
-                    <li key={holding.mint} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.035] px-3 py-2">
+                    <li
+                      key={holding.mint}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.035] px-3 py-2"
+                    >
                       <a
                         href={`https://explorer.solana.com/address/${holding.mint}`}
                         target="_blank"
@@ -482,18 +618,23 @@ export function ConnectWalletButton() {
                         {`${holding.mint.slice(0, 5)}...${holding.mint.slice(-5)}`}
                       </a>
                       <span className="shrink-0 text-xs text-white/80">
-                        {formatWalletTokenAmount(holding.rawAmount, holding.decimals)}
+                        {formatWalletTokenAmount(
+                          holding.rawAmount,
+                          holding.decimals,
+                        )}
                       </span>
                     </li>
                   ))}
                 </ul>
               )}
 
-              {walletAssetsOwnerAddress === address && walletHoldings.length > 8 && (
-                <p className="mt-2 text-[11px] text-white/45">
-                  Showing 8 of {walletHoldings.length} token mints. Additional holdings are not displayed here.
-                </p>
-              )}
+              {walletAssetsOwnerAddress === address &&
+                walletHoldings.length > 8 && (
+                  <p className="mt-2 text-[11px] text-white/45">
+                    Showing 8 of {walletHoldings.length} token mints. Additional
+                    holdings are not displayed here.
+                  </p>
+                )}
             </div>
 
             {walletAssetsUpdatedAt && walletAssetsOwnerAddress === address && (
@@ -502,7 +643,12 @@ export function ConnectWalletButton() {
               </p>
             )}
             {walletAssetsError && (
-              <p role="status" className="mt-3 text-xs leading-5 text-amber-200">{walletAssetsError}</p>
+              <p
+                role="status"
+                className="mt-3 text-xs leading-5 text-amber-200"
+              >
+                {walletAssetsError}
+              </p>
             )}
           </div>
 
@@ -512,12 +658,16 @@ export function ConnectWalletButton() {
               <div>
                 <p className="font-semibold">Token holding verification</p>
                 <p className="mt-1 text-xs leading-5 text-white/55">
-                  Check whether the wallet linked to this LoreForge account currently holds a specific token mint.
+                  Check whether the wallet linked to this LoreForge account
+                  currently holds a specific token mint.
                 </p>
               </div>
             </div>
 
-            <label htmlFor="wallet-token-mint-check" className="mt-3 block text-xs font-medium text-white/75">
+            <label
+              htmlFor="wallet-token-mint-check"
+              className="mt-3 block text-xs font-medium text-white/75"
+            >
               Solana token mint address
             </label>
             <input
@@ -539,49 +689,87 @@ export function ConnectWalletButton() {
             <button
               type="button"
               onClick={handleVerifyTokenHolding}
-              disabled={tokenHoldingLoading || !walletIsLinked || !tokenHoldingMint.trim()}
+              disabled={
+                tokenHoldingLoading ||
+                !walletIsLinked ||
+                !tokenHoldingMint.trim()
+              }
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-lf-purple-light/30 bg-lf-purple/15 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-lf-purple/25 disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {tokenHoldingLoading ? <LoaderCircle size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
-              {tokenHoldingLoading ? "Checking on Solana..." : "Check token balance"}
+              {tokenHoldingLoading ? (
+                <LoaderCircle size={15} className="animate-spin" />
+              ) : (
+                <ShieldCheck size={15} />
+              )}
+              {tokenHoldingLoading
+                ? "Checking on Solana..."
+                : "Check token balance"}
             </button>
 
             {!walletIsLinked && (
               <p className="mt-2 text-xs leading-5 text-amber-200/80">
-                Verify and link this connected wallet to your LoreForge account before checking its token balance.
+                Verify and link this connected wallet to your LoreForge account
+                before checking its token balance.
               </p>
             )}
 
             {tokenHoldingResult && (
-              <div role="status" className="mt-3 rounded-lg border border-white/10 bg-white/[0.035] p-3">
-                <p className={tokenHoldingResult.hasBalance ? "text-sm font-semibold text-emerald-300" : "text-sm font-semibold text-amber-200"}>
-                  {tokenHoldingResult.hasBalance ? "Positive token balance found" : "No token balance found"}
+              <div
+                role="status"
+                className="mt-3 rounded-lg border border-white/10 bg-white/[0.035] p-3"
+              >
+                <p
+                  className={
+                    tokenHoldingResult.hasBalance
+                      ? "text-sm font-semibold text-emerald-300"
+                      : "text-sm font-semibold text-amber-200"
+                  }
+                >
+                  {tokenHoldingResult.hasBalance
+                    ? "Positive token balance found"
+                    : "No token balance found"}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/70">
                   {tokenHoldingResult.hasBalance
                     ? `The linked wallet currently holds ${tokenHoldingResult.amount} tokens for this mint.`
                     : `No nonzero balance for this mint was found on ${tokenHoldingResult.network}.`}
                 </p>
-                <p className="mt-1 break-all font-mono text-[10px] text-white/40">Mint: {tokenHoldingResult.mint}</p>
+                <p className="mt-1 break-all font-mono text-[10px] text-white/40">
+                  Mint: {tokenHoldingResult.mint}
+                </p>
                 <p className="mt-1 text-[10px] text-white/40">
-                  Checked {new Date(tokenHoldingResult.checkedAt).toLocaleTimeString()} Â· {tokenHoldingResult.tokenAccountsCount} token account(s) Â· {tokenHoldingResult.network}
+                  Checked{" "}
+                  {new Date(tokenHoldingResult.checkedAt).toLocaleTimeString()}{" "}
+                  Â· {tokenHoldingResult.tokenAccountsCount} token account(s) Â·{" "}
+                  {tokenHoldingResult.network}
                 </p>
               </div>
             )}
 
             {tokenHoldingError && (
-              <p role="alert" className="mt-3 text-xs leading-5 text-rose-300">{tokenHoldingError}</p>
+              <p role="alert" className="mt-3 text-xs leading-5 text-rose-300">
+                {tokenHoldingError}
+              </p>
             )}
 
             <p className="mt-3 text-[10px] leading-4 text-white/40">
-              Read-only on-chain balance check; no transaction or fee. Holding a token does not prove control of its project or mint authority.
+              Read-only on-chain balance check; no transaction or fee. Holding a
+              token does not prove control of its project or mint authority.
             </p>
           </div>
 
           <div className="mt-4 rounded-xl border border-white/10 p-3">
             <div className="flex items-center gap-2">
-              {walletIsLinked ? <CheckCircle2 size={17} className="text-emerald-400" /> : <ShieldCheck size={17} className="text-lf-cyan" />}
-              <p className="font-medium">{walletIsLinked ? "Verified and linked" : "Wallet not verified for this account"}</p>
+              {walletIsLinked ? (
+                <CheckCircle2 size={17} className="text-emerald-400" />
+              ) : (
+                <ShieldCheck size={17} className="text-lf-cyan" />
+              )}
+              <p className="font-medium">
+                {walletIsLinked
+                  ? "Verified and linked"
+                  : "Wallet not verified for this account"}
+              </p>
             </div>
             <p className="mt-2 text-xs leading-5 text-white/60">
               {walletIsLinked
@@ -591,27 +779,61 @@ export function ConnectWalletButton() {
                   : "Sign a one-time message to link this wallet to your signed-in LoreForge account. No transaction or network fee is involved."}
             </p>
             {!walletIsLinked && (
-              <button type="button" onClick={handleVerifyAndLink} disabled={busy !== null} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lf-purple px-3 py-2.5 font-semibold transition hover:bg-lf-violet disabled:cursor-not-allowed disabled:opacity-50">
-                {busy === "verify" ? <LoaderCircle size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
-                {busy === "verify" ? "Waiting for signature..." : "Verify & link wallet"}
+              <button
+                type="button"
+                onClick={handleVerifyAndLink}
+                disabled={busy !== null}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lf-purple px-3 py-2.5 font-semibold transition hover:bg-lf-violet disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busy === "verify" ? (
+                  <LoaderCircle size={15} className="animate-spin" />
+                ) : (
+                  <ShieldCheck size={15} />
+                )}
+                {busy === "verify"
+                  ? "Waiting for signature..."
+                  : "Verify & link wallet"}
               </button>
             )}
             {linkedWallet?.walletAddress && (
-              <button type="button" onClick={handleUnlink} disabled={busy !== null} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/5 disabled:opacity-50">
-                {busy === "unlink" ? <LoaderCircle size={14} className="animate-spin" /> : <Unlink size={14} />}
+              <button
+                type="button"
+                onClick={handleUnlink}
+                disabled={busy !== null}
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/5 disabled:opacity-50"
+              >
+                {busy === "unlink" ? (
+                  <LoaderCircle size={14} className="animate-spin" />
+                ) : (
+                  <Unlink size={14} />
+                )}
                 Unlink wallet from account
               </button>
             )}
           </div>
 
-          {notice && <p role="status" className="mt-3 text-xs text-emerald-300">{notice}</p>}
-          {error && <p role="alert" className="mt-3 text-xs leading-5 text-rose-300">{error}</p>}
+          {notice && (
+            <p role="status" className="mt-3 text-xs text-emerald-300">
+              {notice}
+            </p>
+          )}
+          {error && (
+            <p role="alert" className="mt-3 text-xs leading-5 text-rose-300">
+              {error}
+            </p>
+          )}
 
           <p className="mt-3 text-[11px] leading-4 text-white/45">
-            Wallet linking proves control of the wallet address only. It doesn&apos;t prove ownership of a token, coin project, or character.
+            Wallet linking proves control of the wallet address only. It
+            doesn&apos;t prove ownership of a token, coin project, or character.
           </p>
 
-          <button type="button" onClick={handleDisconnect} disabled={busy !== null} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/5 disabled:opacity-50">
+          <button
+            type="button"
+            onClick={handleDisconnect}
+            disabled={busy !== null}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/75 transition hover:bg-white/5 disabled:opacity-50"
+          >
             <Wallet size={14} /> Disconnect from this browser
           </button>
         </div>
