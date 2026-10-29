@@ -79,12 +79,13 @@ export function AuthButton({ onNavigate }: { onNavigate?: () => void }) {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-full border border-white/15 px-3 py-2 text-sm text-lf-text-dim hover:border-white/30 hover:text-lf-text cursor-pointer"
         aria-expanded={open}
+        aria-haspopup="menu"
       >
         <UserIcon size={15} /> Account <ChevronDown size={13} />
       </button>
 
       {open && (
-        <div className="lf-glass absolute right-0 z-50 mt-2 w-52 space-y-1 p-2 text-sm">
+        <div className="lf-glass fixed left-1/2 top-1/2 z-[80] w-[calc(100vw-2rem)] max-w-80 -translate-x-1/2 -translate-y-1/2 space-y-1 p-2 text-sm shadow-2xl md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-52 md:max-w-none md:translate-x-0 md:translate-y-0">
           <p className="truncate px-2 py-1 text-xs text-lf-text-faint">
             {email}
           </p>
