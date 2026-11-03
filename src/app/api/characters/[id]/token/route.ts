@@ -19,8 +19,34 @@ const bodySchema = z.object({
     .transform((s) => s.replace(/^\$/, ""))
     .optional(),
   launchpadId: z.enum(["pump-fun", "raydium-launchlab"]).nullable().optional(),
+
 });
 
+
+const QUOTE_MINTS = new Set([
+  "So11111111111111111111111111111111111111112", // wrapped SOL
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+]);
+
+/** If the user pasted a DexScreener pair address, resolve it to the token's mint. */
+async function resolvePairToMint(address: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/pairs/solana/${encodeURIComponent(address)}`,
+      { cache: "no-store", signal: AbortSignal.timeout(6000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const pair = data?.pairs?.[0] ?? data?.pair;
+    const base = pair?.baseToken?.address;
+    const quote = pair?.quoteToken?.address;
+    if (typeof base === "string" && !QUOTE_MINTS.has(base)) return base;
+    if (typeof quote === "string" && !QUOTE_MINTS.has(quote)) return quote;
+    return null;
+  } catch {
+    return null;
+  }
+}
 /**
  * Associate an EXISTING Solana token with a character the user owns.
  * This is informational, not proof of ownership of the token itself —
@@ -45,14 +71,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   const { data: owns } = await supabase.from("characters").select("id").eq("id", id).eq("owner_id", user.id).maybeSingle();
   if (!owns) return NextResponse.json({ error: "Character not found." }, { status: 404 });
 
-  const format = checkMintAddressFormat(body.mintAddress);
+  let mintAddress = body.mintAddress;
+  const format = checkMintAddressFormat(mintAddress);
   if (!format.ok) {
     return NextResponse.json({ error: format.reason, code: "INVALID_FORMAT" }, { status: 400 });
   }
 
-  const onChain = await checkMintOnChain(body.mintAddress);
+  let onChain = await checkMintOnChain(mintAddress);
+
   if (onChain.status === "not_a_mint") {
-    return NextResponse.json({ error: onChain.reason, code: "NOT_A_MINT" }, { status: 400 });
+    const resolved = await resolvePairToMint(mintAddress);
+    if (resolved && resolved !== mintAddress) {
+      const retry = await checkMintOnChain(resolved);
+      if (retry.status !== "not_a_mint") {
+        mintAddress = resolved;
+        onChain = retry;
+      }
+    }
+  }
+
+  if (onChain.status === "not_a_mint") {
+    return NextResponse.json(
+      { error: "That address isn't a Solana token mint. If you copied it from DexScreener, use the token address, not the pair address.", code: "NOT_A_MINT" },
+      { status: 400 }
+    );
   }
   const verified = onChain.status === "verified";
   const decimals = onChain.status === "verified" ? onChain.decimals : null;
